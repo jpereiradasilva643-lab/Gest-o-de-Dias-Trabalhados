@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ponto">
+<meta name="theme-color" content="#0f0f0f">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Ponto Eletrônico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#242424;--bg4:#2e2e2e;
+  --text:#f0f0f0;--muted:#888;--border:#333;
+  --accent:#e8ff47;--accent2:#c8e030;
+  --green:#4ade80;--orange:#fb923c;--blue:#60a5fa;--red:#f87171;
+  --radius:16px;--radius-sm:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden}
+#app{height:100vh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
+
+/* ---- LOADING SCREEN ---- */
+.loading-screen{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-screen.hidden{display:none}
+.loading-mark{width:56px;height:56px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#0f0f0f;font-family:'DM Mono',monospace}
+.loading-text{font-size:14px;color:var(--muted)}
+
+/* ---- AUTH SCREEN ---- */
+.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;overflow-y:auto;max-width:430px;margin:0 auto;left:0;right:0}
+.auth-screen.hidden{display:none}
+.auth-inner{padding:40px 24px 40px;display:flex;flex-direction:column;min-height:100%}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-logo-mark{width:56px;height:56px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;font-weight:700;color:#0f0f0f;font-family:'DM Mono',monospace}
+.auth-logo-title{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.02em}
+.auth-logo-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;flex:1}
+.auth-tabs{display:flex;gap:6px;margin-bottom:20px}
+.auth-tab{flex:1;padding:9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--muted);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;transition:all .15s}
+.auth-tab.active{background:var(--accent);color:#0f0f0f;border-color:var(--accent)}
+.auth-form{display:flex;flex-direction:column;gap:12px}
+.auth-form.hidden{display:none}
+.inp-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:5px}
+.auth-inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:13px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+.auth-inp:focus{border-color:var(--accent)}
+.auth-btn{width:100%;padding:15px;border-radius:var(--radius);border:none;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--accent);color:#0f0f0f;margin-top:4px;transition:all .15s;letter-spacing:.01em}
+.auth-btn:active{background:var(--accent2);transform:scale(.98)}
+.auth-btn:disabled{background:var(--bg3);color:var(--muted);cursor:default}
+.auth-err{font-size:13px;color:var(--red);text-align:center;padding:8px;background:#201010;border:1px solid #402020;border-radius:var(--radius-sm);display:none}
+.auth-err.show{display:block}
+.auth-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+.admin-badge{display:inline-flex;align-items:center;gap:5px;background:#1f2200;border:1px solid var(--accent);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--accent);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+
+/* ---- MAIN APP ---- */
+.top-bar{padding:env(safe-area-inset-top) 20px 0;background:var(--bg);flex-shrink:0}
+.top-bar-inner{display:flex;justify-content:space-between;align-items:center;padding:14px 0 10px}
+.company-name{font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
+.clock-small{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)}
+.nav{display:flex;padding:0 20px 14px;gap:8px;flex-shrink:0}
+.nav-btn{flex:1;padding:14px 4px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--muted);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;font-weight:600;min-height:48px;letter-spacing:.01em}
+.nav-btn.active{background:var(--accent);color:#0f0f0f;border-color:var(--accent);font-weight:700}
+.nav-btn:not(.active):active{background:var(--bg3)}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 20px;padding-bottom:calc(env(safe-area-inset-bottom) + 20px)}
+.content::-webkit-scrollbar{display:none}
+
+/* User chip */
+.user-chip{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px}
+.user-chip-av{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0f0f0f;font-family:'DM Mono',monospace;flex-shrink:0}
+.user-chip-info{flex:1}
+.user-chip-name{font-size:13px;font-weight:600;color:var(--text)}
+.user-chip-role{font-size:11px;color:var(--muted)}
+.logout-btn{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:5px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600}
+.logout-btn:active{background:var(--bg3)}
+
+/* Clock */
+.clock-block{text-align:center;padding:24px 0 20px}
+.clock-big{font-family:'DM Mono',monospace;font-size:52px;font-weight:400;color:var(--text);letter-spacing:-1px;line-height:1}
+.date-line{font-size:13px;color:var(--muted);margin-top:8px;text-transform:capitalize}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+
+/* Beat grid */
+.beat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.beat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px}
+.beat-card:active{transform:scale(.97)}
+.beat-card.selected.E{border-color:var(--green);background:#0d2018}
+.beat-card.selected.A{border-color:var(--orange);background:#201508}
+.beat-card.selected.V{border-color:var(--blue);background:#0d1520}
+.beat-card.selected.S{border-color:var(--red);background:#201010}
+.beat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.E .beat-dot{background:var(--green)}.A .beat-dot{background:var(--orange)}.V .beat-dot{background:var(--blue)}.S .beat-dot{background:var(--red)}
+.beat-info .beat-name{font-size:13px;font-weight:500;color:var(--text)}
+.beat-info .beat-sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* Confirm */
+.confirm-area{position:sticky;bottom:0;background:linear-gradient(to top, var(--bg) 70%, transparent);padding:16px 0 4px;margin-top:4px}
+.confirm-btn{width:100%;padding:16px;border-radius:var(--radius);border:none;font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--accent);color:#0f0f0f;transition:all .15s;letter-spacing:.01em}
+.confirm-btn:disabled{background:var(--bg3);color:var(--muted);cursor:default}
+.confirm-btn:not(:disabled):active{transform:scale(.98);background:var(--accent2)}
+
+/* Toast */
+.toast{position:fixed;top:calc(env(safe-area-inset-top) + 60px);left:50%;transform:translateX(-50%) translateY(-20px);background:var(--bg3);border:1px solid var(--green);color:var(--green);padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:all .3s;z-index:999;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+/* Registros */
+.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.sum-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 8px;text-align:center}
+.sum-n{font-family:'DM Mono',monospace;font-size:22px;font-weight:400;color:var(--text)}
+.sum-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.filter-row{display:flex;gap:8px;margin-bottom:12px}
+.filter-row select,.filter-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:10px 12px;font-size:13px;font-family:'DM Sans',sans-serif;-webkit-appearance:none;appearance:none}
+.filter-row select option{background:var(--bg2);color:var(--text)}
+.export-btn{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);padding:10px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.export-btn:active{background:var(--bg4)}
+.reg-date-group{margin-bottom:4px}
+.reg-date-header{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;padding:14px 0 8px;border-bottom:1px solid var(--border);margin-bottom:2px}
+.reg-item{padding:12px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.reg-item:last-child{border-bottom:none}
+.reg-left{flex:1}
+.reg-name{font-size:14px;font-weight:500;color:var(--text)}
+.reg-meta{font-size:12px;color:var(--muted);margin-top:1px;margin-bottom:4px}
+.reg-tipo{margin-top:4px}
+.reg-right{text-align:right}
+.reg-time{font-family:'DM Mono',monospace;font-size:14px;color:var(--text)}
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.08em;margin-bottom:4px;display:inline-block;text-transform:uppercase}
+.badge-E{background:#0d2018;color:var(--green);border:1px solid #1a4030}
+.badge-A{background:#201508;color:var(--orange);border:1px solid #402810}
+.badge-V{background:#0d1520;color:var(--blue);border:1px solid #103050}
+.badge-S{background:#201010;color:var(--red);border:1px solid #402020}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+.empty-icon{font-size:32px;margin-bottom:8px}
+
+/* Admin */
+.input-group{margin-bottom:12px}
+.input-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600}
+.inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--accent)}
+.inp-row{display:flex;gap:8px}
+.inp-row .inp{flex:1}
+.add-btn{background:var(--accent);border:none;border-radius:var(--radius-sm);color:#0f0f0f;padding:12px 18px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.add-btn:active{background:var(--accent2)}
+.func-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.func-row:last-child{border-bottom:none}
+.func-row-left{display:flex;align-items:center;gap:10px}
+.func-row-av{width:32px;height:32px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;font-family:'DM Mono',monospace}
+.func-row-name{font-size:14px;font-weight:500;color:var(--text)}
+.func-row-role{font-size:12px;color:var(--muted)}
+.func-row-email{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.del-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--red);padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600}
+.del-btn:active{background:#201010}
+.promote-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--accent);padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;margin-right:6px}
+.promote-btn:active{background:#1f2200}
+.promote-btn.demote{color:var(--muted)}
+.func-row-actions{display:flex;align-items:center;gap:4px}
+.save-btn{width:100%;padding:14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:4px;letter-spacing:.02em}
+.save-btn:active{background:var(--bg4)}
+.divider{height:1px;background:var(--border);margin:6px 0 16px}
+.version{text-align:center;padding:20px;font-size:11px;color:var(--bg4);font-family:'DM Mono',monospace}
+.admin-only-notice{background:#0d2018;border:1px solid #1a4030;border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--green);text-align:center;margin-bottom:12px}
+.pending-screen{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;flex:1}
+.pending-screen.show{display:flex}
+.pending-icon{font-size:48px;margin-bottom:16px}
+.pending-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.02em}
+.pending-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px}
+.pending-card-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;width:100%;max-width:360px;margin-bottom:20px;text-align:left}
+.pending-card-wrap .pcw-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:4px}
+.pending-card-wrap .pcw-val{font-size:14px;color:var(--text);font-weight:500}
+.pending-back-btn{background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);padding:12px 24px;font-size:14px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer}
+.pending-back-btn:active{background:var(--bg3)}
+.pending-card-list{width:100%;max-width:360px}
+.pending-item{background:var(--bg2);border:1px solid #402810;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pending-item-info .pi-name{font-size:13px;font-weight:600;color:var(--text)}
+.pending-item-info .pi-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.pi-actions{display:flex;gap:6px;flex-shrink:0}
+.pi-approve{background:#0d2018;border:1px solid #1a4030;border-radius:8px;color:var(--green);padding:6px 12px;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer}
+.pi-approve:active{background:#143020}
+.pi-reject{background:#201010;border:1px solid #402020;border-radius:8px;color:var(--red);padding:6px 12px;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer}
+.pi-reject:active{background:#2a1010}
+.section-divider{display:flex;align-items:center;gap:10px;margin:16px 0 12px}
+.section-divider span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;white-space:nowrap}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-mark">P</div>
+  <div class="loading-text">Conectando...</div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div class="auth-screen hidden" id="auth-screen">
+  <div class="auth-inner">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">P</div>
+      <div class="auth-logo-title">Ponto Eletrônico</div>
+      <div class="auth-logo-sub" id="auth-empresa-label">Carregando...</div>
+    </div>
+
+    <div class="pending-screen" id="pending-screen">
+      <div class="pending-icon">⏳</div>
+      <div class="pending-title">Cadastro em análise</div>
+      <div class="pending-sub">Seu cadastro foi enviado!<br>Aguarde a aprovação do proprietário.</div>
+      <div class="pending-card-wrap">
+        <div class="pcw-label">Nome</div><div class="pcw-val" id="ps-nome">—</div>
+        <div style="height:10px"></div>
+        <div class="pcw-label">E-mail</div><div class="pcw-val" id="ps-email">—</div>
+        <div style="height:10px"></div>
+        <div class="pcw-label">Cargo</div><div class="pcw-val" id="ps-cargo">—</div>
+      </div>
+      <button class="pending-back-btn" onclick="showAuthForms()">← Voltar ao login</button>
+    </div>
+
+    <div id="auth-forms-wrap">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login-btn" onclick="switchAuthTab('login')">Entrar</button>
+        <button class="auth-tab" id="tab-register-btn" onclick="switchAuthTab('register')">Cadastrar</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div class="auth-form" id="form-login">
+        <div>
+          <div class="inp-label">E-mail</div>
+          <input class="auth-inp" id="l-email" type="email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div>
+          <div class="inp-label">Data de nascimento</div>
+          <input class="auth-inp" id="l-nasc" type="date">
+        </div>
+        <div id="login-err" class="auth-err"></div>
+        <button class="auth-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+        <div class="auth-hint">Novo? Toque em <strong>Cadastrar</strong></div>
+      </div>
+
+      <!-- REGISTER -->
+      <div class="auth-form hidden" id="form-register">
+        <div>
+          <div class="inp-label">Nome completo</div>
+          <input class="auth-inp" id="r-nome" type="text" placeholder="Seu nome completo" autocomplete="name">
+        </div>
+        <div>
+          <div class="inp-label">Data de nascimento</div>
+          <input class="auth-inp" id="r-nasc" type="date">
+        </div>
+        <div>
+          <div class="inp-label">E-mail</div>
+          <input class="auth-inp" id="r-email" type="email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div>
+          <div class="inp-label">Cargo na empresa</div>
+          <input class="auth-inp" id="r-cargo" type="text" placeholder="Ex: Vendedor, Operador...">
+        </div>
+        <div id="reg-err" class="auth-err"></div>
+        <button class="auth-btn" id="register-btn" onclick="doRegister()">Solicitar cadastro</button>
+        <div class="auth-hint">Já tem conta? Toque em <strong>Entrar</strong></div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <span class="company-name" id="company-label">Minha Empresa</span>
+      <span class="clock-small" id="clock-small">00:00</span>
+    </div>
+    <div class="nav" id="main-nav">
+      <button class="nav-btn active" id="nav-bater" onclick="goTab('bater')">Bater Ponto</button>
+      <button class="nav-btn" id="nav-registros" onclick="goTab('registros')">Registros</button>
+      <button class="nav-btn" id="nav-config" style="display:none" onclick="goTab('config')">Config</button>
+    </div>
+  </div>
+
+  <!-- TAB: BATER PONTO -->
+  <div class="content" id="tab-bater">
+    <div id="user-chip-area"></div>
+    <div class="clock-block">
+      <div class="clock-big" id="clock-big">00:00:00</div>
+      <div class="date-line" id="date-line"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tipo de batida</div>
+      <div class="beat-grid">
+        <div class="beat-card E" id="beat-E" onclick="selectBeat('E')">
+          <div class="beat-dot"></div>
+          <div class="beat-info"><div class="beat-name">Entrada</div><div class="beat-sub">Início do turno</div></div>
+        </div>
+        <div class="beat-card A" id="beat-A" onclick="selectBeat('A')">
+          <div class="beat-dot"></div>
+          <div class="beat-info"><div class="beat-name">Indo Almoçar</div><div class="beat-sub">Saída p/ almoço</div></div>
+        </div>
+        <div class="beat-card V" id="beat-V" onclick="selectBeat('V')">
+          <div class="beat-dot"></div>
+          <div class="beat-info"><div class="beat-name">Volta do Almoço</div><div class="beat-sub">Retorno almoço</div></div>
+        </div>
+        <div class="beat-card S" id="beat-S" onclick="selectBeat('S')">
+          <div class="beat-dot"></div>
+          <div class="beat-info"><div class="beat-name">Saída</div><div class="beat-sub">Fim do turno</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="confirm-area">
+      <button class="confirm-btn" id="confirm-btn" disabled onclick="registrar()">Registrar ponto</button>
+    </div>
+  </div>
+
+  <!-- TAB: REGISTROS -->
+  <div class="content" id="tab-registros" style="display:none">
+    <div style="padding-top:16px">
+      <div class="summary-row">
+        <div class="sum-box"><div class="sum-n" id="s-total">0</div><div class="sum-l">Hoje</div></div>
+        <div class="sum-box"><div class="sum-n" id="s-e" style="color:var(--green)">0</div><div class="sum-l">Entrada</div></div>
+        <div class="sum-box"><div class="sum-n" id="s-a" style="color:var(--orange)">0</div><div class="sum-l">Almoço</div></div>
+        <div class="sum-box"><div class="sum-n" id="s-s" style="color:var(--red)">0</div><div class="sum-l">Saída</div></div>
+      </div>
+      <div class="filter-row" id="admin-filters" style="display:none">
+        <select id="f-func" onchange="renderRegs()"><option value="">Todos</option></select>
+        <input type="date" id="f-date" onchange="renderRegs()">
+      </div>
+      <div class="filter-row" id="user-filters">
+        <input type="date" id="f-date-user" onchange="renderRegs()">
+      </div>
+      <div id="csv-area" style="display:none;margin-bottom:8px">
+        <button class="export-btn" style="width:100%" onclick="exportCSV()">↓ Exportar CSV</button>
+      </div>
+      <div class="card" style="padding:0 16px">
+        <div id="reg-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CONFIG -->
+  <div class="content" id="tab-config" style="display:none">
+    <div style="padding-top:16px">
+      <div class="admin-only-notice">⚡ Painel do administrador</div>
+      <div class="card">
+        <div class="card-title">Aprovações pendentes</div>
+        <div id="pending-list-admin"><div style="color:var(--muted);font-size:13px;padding:4px 0">Nenhum cadastro pendente.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Empresa</div>
+        <div class="input-group">
+          <div class="input-label">Nome da empresa</div>
+          <input class="inp" id="inp-empresa" type="text" placeholder="Nome da empresa">
+        </div>
+        <button class="save-btn" onclick="saveEmpresa()">Salvar nome</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Funcionários ativos</div>
+        <div id="func-list-admin"><div style="color:var(--muted);font-size:13px;padding:8px 0">Nenhum funcionário</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Adicionar funcionário manualmente</div>
+        <div class="input-group">
+          <div class="input-label">Nome</div>
+          <input class="inp" id="inp-nome" type="text" placeholder="Nome completo">
+        </div>
+        <div class="input-group">
+          <div class="input-label">E-mail</div>
+          <input class="inp" id="inp-email-admin" type="email" placeholder="email@exemplo.com">
+        </div>
+        <div class="input-group">
+          <div class="input-label">Data de nascimento</div>
+          <input class="inp" id="inp-nasc-admin" type="date">
+        </div>
+        <div class="input-group">
+          <div class="input-label">Cargo</div>
+          <div class="inp-row">
+            <input class="inp" id="inp-cargo-admin" type="text" placeholder="Cargo ou função">
+            <button class="add-btn" onclick="addFuncAdmin()">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="version">ponto v3.0 firebase · admin: jpereiradasilva643@gmail.com</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc,
+  updateDoc, deleteDoc, query, where, orderBy, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ========== CONFIG FIREBASE ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyB-TL8OfMRHgSLScIxxIYn4VDpLQksyrsY",
+  authDomain: "controle-de-ponto-30961.firebaseapp.com",
+  projectId: "controle-de-ponto-30961",
+  storageBucket: "controle-de-ponto-30961.firebasestorage.app",
+  messagingSenderId: "85497200163",
+  appId: "1:85497200163:web:5b99e67d29e13d74113b96"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+
+// ========== CONSTANTES ==========
+const ADMIN_EMAIL = 'jpereiradasilva643@gmail.com';
+
+// ========== ESTADO GLOBAL ==========
+let currentUser = null;
+let selBeat     = null;
+let allUsers    = [];
+let allRegs     = [];
+let empresa     = 'Minha Empresa';
+let unsubRegs   = null;
+let unsubUsers  = null;
+
+// ========== UTILS ==========
+function ini(n) {
+  const p = n.trim().split(' ');
+  return (p[0][0] + (p[1] ? p[1][0] : '')).toUpperCase();
+}
+function getNow() {
+  const d = new Date();
+  return {
+    ts:   d.toISOString(),
+    hora: d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+    data: d.toLocaleDateString('pt-BR'),
+    iso:  d.toISOString().split('T')[0]
+  };
+}
+function tick() {
+  const d = new Date();
+  document.getElementById('clock-big').textContent   = d.toLocaleTimeString('pt-BR');
+  document.getElementById('clock-small').textContent = d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('date-line').textContent   = d.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'});
+}
+function toast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+function setLoading(show) {
+  document.getElementById('loading-screen').classList.toggle('hidden', !show);
+}
+function setBtnLoading(id, loading, label) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Aguarde...' : label;
+}
+
+// ========== FIRESTORE HELPERS ==========
+async function getEmpresa() {
+  try {
+    const snap = await getDoc(doc(db, 'config', 'empresa'));
+    return snap.exists() ? snap.data().nome : 'Minha Empresa';
+  } catch(e) { return 'Minha Empresa'; }
+}
+
+async function getUserByEmail(email) {
+  const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+async function getAllUsers() {
+  const snap = await getDocs(collection(db, 'users'));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ========== BOOT ==========
+async function boot() {
+  setLoading(true);
+  try {
+    empresa = await getEmpresa();
+    document.getElementById('auth-empresa-label').textContent = empresa;
+    document.getElementById('company-label').textContent = empresa.toUpperCase();
+  } catch(e) {}
+  setLoading(false);
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+// ========== AUTH ==========
+function showAuthForms() {
+  document.getElementById('pending-screen').classList.remove('show');
+  document.getElementById('auth-forms-wrap').style.display = '';
+  switchAuthTab('login');
+}
+function showPendingScreen(user) {
+  document.getElementById('auth-forms-wrap').style.display = 'none';
+  document.getElementById('ps-nome').textContent  = user.nome;
+  document.getElementById('ps-email').textContent = user.email;
+  document.getElementById('ps-cargo').textContent = user.cargo;
+  document.getElementById('pending-screen').classList.add('show');
+}
+function switchAuthTab(tab) {
+  document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('tab-login-btn').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register-btn').classList.toggle('active', tab === 'register');
+  document.getElementById('login-err').classList.remove('show');
+  document.getElementById('reg-err').classList.remove('show');
+}
+window.switchAuthTab = switchAuthTab;
+window.showAuthForms = showAuthForms;
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim().toLowerCase();
+  const nasc  = document.getElementById('l-nasc').value;
+  const err   = document.getElementById('login-err');
+  err.classList.remove('show');
+  if (!email || !nasc) { err.textContent = 'Preencha e-mail e data de nascimento.'; err.classList.add('show'); return; }
+
+  setBtnLoading('login-btn', true, 'Entrar');
+  try {
+    // Admin especial
+    if (email === ADMIN_EMAIL.toLowerCase()) {
+      let adminUser = await getUserByEmail(ADMIN_EMAIL);
+      if (adminUser) {
+        if (adminUser.nasc !== nasc) { err.textContent = 'Data de nascimento incorreta.'; err.classList.add('show'); return; }
+        loginSuccess({ ...adminUser, isAdmin: true });
+      } else {
+        // Primeira vez: cria o admin
+        const newAdmin = { nome: 'Proprietário', cargo: 'Proprietário', email: ADMIN_EMAIL, nasc, isAdmin: true, status: 'active' };
+        const ref = await addDoc(collection(db, 'users'), newAdmin);
+        loginSuccess({ id: ref.id, ...newAdmin });
+      }
+      return;
+    }
+
+    const user = await getUserByEmail(email);
+    if (!user || user.nasc !== nasc) { err.textContent = 'E-mail ou data de nascimento incorretos.'; err.classList.add('show'); return; }
+    if (user.status === 'pending')   { showPendingScreen(user); return; }
+    if (user.status !== 'active')    { err.textContent = 'Cadastro não autorizado. Fale com o proprietário.'; err.classList.add('show'); return; }
+    loginSuccess(user);
+  } catch(e) {
+    err.textContent = 'Erro de conexão. Verifique sua internet.'; err.classList.add('show');
+  } finally {
+    setBtnLoading('login-btn', false, 'Entrar');
+  }
+}
+window.doLogin = doLogin;
+
+async function doRegister() {
+  const nome  = document.getElementById('r-nome').value.trim();
+  const nasc  = document.getElementById('r-nasc').value;
+  const email = document.getElementById('r-email').value.trim().toLowerCase();
+  const cargo = document.getElementById('r-cargo').value.trim();
+  const err   = document.getElementById('reg-err');
+  err.classList.remove('show');
+
+  if (!nome || !nasc || !email || !cargo) { err.textContent = 'Preencha todos os campos.'; err.classList.add('show'); return; }
+  if (!email.includes('@') || !email.split('@')[1]?.includes('.')) { err.textContent = 'Digite um e-mail válido.'; err.classList.add('show'); return; }
+  if (email === ADMIN_EMAIL.toLowerCase()) { err.textContent = 'Este e-mail é reservado ao proprietário.'; err.classList.add('show'); return; }
+
+  setBtnLoading('register-btn', true, 'Solicitar cadastro');
+  try {
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      if (existing.status === 'pending') { showPendingScreen(existing); return; }
+      if (existing.status === 'active')  { err.textContent = 'E-mail já cadastrado. Faça login.'; err.classList.add('show'); return; }
+    }
+    const newUser = { nome, nasc, email, cargo, isAdmin: false, status: 'pending', criadoEm: new Date().toISOString() };
+    const ref = await addDoc(collection(db, 'users'), newUser);
+    showPendingScreen({ id: ref.id, ...newUser });
+    document.getElementById('r-nome').value = '';
+    document.getElementById('r-nasc').value = '';
+    document.getElementById('r-email').value = '';
+    document.getElementById('r-cargo').value = '';
+  } catch(e) {
+    err.textContent = 'Erro de conexão. Tente novamente.'; err.classList.add('show');
+  } finally {
+    setBtnLoading('register-btn', false, 'Solicitar cadastro');
+  }
+}
+window.doRegister = doRegister;
+
+function loginSuccess(user) {
+  currentUser = user;
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('pending-screen').classList.remove('show');
+  document.getElementById('auth-forms-wrap').style.display = '';
+  initApp();
+}
+
+function doLogout() {
+  currentUser = null; selBeat = null;
+  if (unsubRegs)  { unsubRegs();  unsubRegs  = null; }
+  if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('l-email').value = '';
+  document.getElementById('l-nasc').value  = '';
+  switchAuthTab('login');
+  goTab('bater');
+}
+window.doLogout = doLogout;
+
+// ========== APP INIT ==========
+function initApp() {
+  empresa = empresa || 'Minha Empresa';
+  document.getElementById('company-label').textContent = empresa.toUpperCase();
+  document.getElementById('auth-empresa-label').textContent = empresa;
+
+  const cfgBtn = document.getElementById('nav-config');
+  cfgBtn.style.display = currentUser && currentUser.isAdmin ? '' : 'none';
+
+  renderUserChip();
+  chk();
+
+  // Escuta registros em tempo real
+  const isAdmin = currentUser && currentUser.isAdmin;
+  const regsRef = collection(db, 'registros');
+  const regsQ   = isAdmin
+    ? query(regsRef, orderBy('ts', 'desc'))
+    : query(regsRef, where('uid', '==', currentUser.id), orderBy('ts', 'desc'));
+
+  unsubRegs = onSnapshot(regsQ, snap => {
+    allRegs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateSummary();
+    if (document.getElementById('tab-registros').style.display !== 'none') renderRegs();
+  });
+
+  // Escuta usuários em tempo real (só admin)
+  if (isAdmin) {
+    unsubUsers = onSnapshot(collection(db, 'users'), snap => {
+      allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (document.getElementById('tab-config').style.display !== 'none') renderAdmin();
+    });
+  }
+
+  goTab('bater');
+}
+
+function renderUserChip() {
+  const area = document.getElementById('user-chip-area');
+  if (!currentUser) { area.innerHTML = ''; return; }
+  const badge = currentUser.isAdmin ? '<span class="admin-badge">⚡ Admin</span>' : '';
+  area.innerHTML = `<div class="user-chip">
+    <div class="user-chip-av">${ini(currentUser.nome)}</div>
+    <div class="user-chip-info">
+      <div class="user-chip-name">${currentUser.nome} ${badge}</div>
+      <div class="user-chip-role">${currentUser.cargo || ''}</div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Sair</button>
+  </div>`;
+}
+
+// ========== BEAT ==========
+function selectBeat(b) {
+  selBeat = b;
+  ['E','A','V','S'].forEach(x => { document.getElementById('beat-'+x).className = 'beat-card '+x; });
+  document.getElementById('beat-'+b).classList.add('selected', b);
+  chk();
+}
+window.selectBeat = selectBeat;
+
+function chk() {
+  document.getElementById('confirm-btn').disabled = !selBeat;
+}
+
+async function registrar() {
+  if (!selBeat || !currentUser) return;
+  const btn = document.getElementById('confirm-btn');
+  btn.disabled = true;
+  const t = getNow();
+  const labels = {E:'Entrada', A:'Indo Almoçar', V:'Volta do Almoço', S:'Saída'};
+  try {
+    await addDoc(collection(db, 'registros'), {
+      uid: currentUser.id,
+      fn:  currentUser.nome,
+      fc:  currentUser.cargo,
+      b:   selBeat,
+      h:   t.hora,
+      d:   t.data,
+      iso: t.iso,
+      ts:  t.ts
+    });
+    toast(`✓ ${labels[selBeat]} registrada — ${t.hora}`);
+    selBeat = null;
+    ['E','A','V','S'].forEach(x => { document.getElementById('beat-'+x).className = 'beat-card '+x; });
+  } catch(e) {
+    toast('Erro ao registrar. Verifique sua internet.', true);
+  }
+  chk();
+}
+window.registrar = registrar;
+
+// ========== REGISTROS ==========
+function updateSummary() {
+  const hoje = new Date().toISOString().split('T')[0];
+  let h = allRegs.filter(r => r.iso === hoje);
+  if (currentUser && !currentUser.isAdmin) h = h.filter(r => r.uid === currentUser.id);
+  document.getElementById('s-total').textContent = h.length;
+  document.getElementById('s-e').textContent = h.filter(r => r.b === 'E').length;
+  document.getElementById('s-a').textContent = h.filter(r => r.b === 'A').length;
+  document.getElementById('s-s').textContent = h.filter(r => r.b === 'S').length;
+}
+
+function renderRegs() {
+  const labels   = {E:'Entrada', A:'Indo Almoçar', V:'Volta do Almoço', S:'Saída'};
+  const isAdmin  = currentUser && currentUser.isAdmin;
+
+  if (isAdmin) {
+    const sel = document.getElementById('f-func');
+    const cur = sel.value;
+    const ativos = allUsers.filter(u => u.status === 'active');
+    sel.innerHTML = '<option value="">Todos os funcionários</option>' +
+      ativos.map(u => `<option value="${u.id}"${cur===u.id?' selected':''}>${u.nome}</option>`).join('');
+  }
+
+  let list = [...allRegs];
+  if (isAdmin) {
+    const ff = document.getElementById('f-func').value;
+    const fd = document.getElementById('f-date').value;
+    if (ff) list = list.filter(r => r.uid === ff);
+    if (fd) list = list.filter(r => r.iso === fd);
+  } else {
+    list = list.filter(r => r.uid === currentUser.id);
+    const fd = document.getElementById('f-date-user').value;
+    if (fd) list = list.filter(r => r.iso === fd);
+  }
+
+  const el = document.getElementById('reg-list');
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>Nenhum registro encontrado</div>'; return; }
+
+  const byDate = {};
+  list.forEach(r => { if (!byDate[r.iso]) byDate[r.iso] = []; byDate[r.iso].push(r); });
+
+  el.innerHTML = Object.keys(byDate).sort((a,b) => b.localeCompare(a)).map(iso => {
+    const dataF = new Date(iso+'T12:00:00').toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+    const items = byDate[iso].map(r => `
+      <div class="reg-item">
+        <div class="reg-left">
+          ${isAdmin ? `<div class="reg-name">${r.fn}</div><div class="reg-meta">${r.fc}</div>` : ''}
+          <div class="reg-tipo"><span class="badge badge-${r.b}">${labels[r.b]}</span></div>
+        </div>
+        <div class="reg-right"><div class="reg-time">${r.h}</div></div>
+      </div>`).join('');
+    return `<div class="reg-date-group">
+      <div class="reg-date-header">${dataF.charAt(0).toUpperCase()+dataF.slice(1)}</div>
+      ${items}</div>`;
+  }).join('');
+}
+
+function exportCSV() {
+  if (!currentUser || !currentUser.isAdmin) { toast('Apenas administradores podem exportar.', true); return; }
+  const labels = {E:'Entrada', A:'Indo Almoçar', V:'Volta do Almoço', S:'Saída'};
+  let list = [...allRegs];
+  const ff = document.getElementById('f-func').value;
+  const fd = document.getElementById('f-date').value;
+  if (ff) list = list.filter(r => r.uid === ff);
+  if (fd) list = list.filter(r => r.iso === fd);
+  const rows = [['Funcionario','Cargo','Data','Hora','Tipo de Batida']];
+  list.forEach(r => rows.push([r.fn, r.fc, r.d, r.h, labels[r.b]]));
+  const csv  = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a    = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ponto_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+window.exportCSV = exportCSV;
+
+// ========== CONFIG ADMIN ==========
+async function renderAdmin() {
+  document.getElementById('inp-empresa').value = empresa;
+  if (!allUsers.length) allUsers = await getAllUsers();
+  const isSuperAdmin = currentUser && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  // Pendentes
+  const pendingEl = document.getElementById('pending-list-admin');
+  const pending   = allUsers.filter(u => u.status === 'pending');
+  pendingEl.innerHTML = !pending.length
+    ? '<div style="color:var(--muted);font-size:13px;padding:4px 0">Nenhum cadastro pendente.</div>'
+    : '<div class="pending-card-list">' + pending.map(u => `
+      <div class="pending-item">
+        <div class="pending-item-info">
+          <div class="pi-name">${u.nome}</div>
+          <div class="pi-meta">${u.cargo} · ${u.email}</div>
+        </div>
+        <div class="pi-actions">
+          <button class="pi-approve" onclick="approveUser('${u.id}')">✓ Aprovar</button>
+          <button class="pi-reject"  onclick="rejectUser('${u.id}')">✗</button>
+        </div>
+      </div>`).join('') + '</div>';
+
+  // Ativos
+  const el     = document.getElementById('func-list-admin');
+  const active = allUsers.filter(u => u.status === 'active' && u.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase());
+  if (!active.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Nenhum funcionário cadastrado ainda.</div>'; return; }
+  el.innerHTML = active.map(u => {
+    const isAdm     = !!u.isAdmin;
+    const adminBadge = isAdm ? '<span style="font-size:10px;color:var(--accent);margin-left:4px;font-weight:700">[ADMIN]</span>' : '';
+    const promoteBtn = isSuperAdmin
+      ? `<button class="${isAdm?'promote-btn demote':'promote-btn'}" onclick="toggleAdmin('${u.id}')">${isAdm?'★ Remover Admin':'★ Tornar Admin'}</button>` : '';
+    return `<div class="func-row">
+      <div class="func-row-left">
+        <div class="func-row-av">${ini(u.nome)}</div>
+        <div>
+          <div class="func-row-name">${u.nome}${adminBadge}</div>
+          <div class="func-row-role">${u.cargo}</div>
+          <div class="func-row-email">${u.email}</div>
+        </div>
+      </div>
+      <div class="func-row-actions">
+        ${promoteBtn}
+        <button class="del-btn" onclick="delUser('${u.id}')">Remover</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function approveUser(id) {
+  try {
+    await updateDoc(doc(db, 'users', id), { status: 'active' });
+    toast('✓ Usuário aprovado!');
+  } catch(e) { toast('Erro ao aprovar.', true); }
+}
+window.approveUser = approveUser;
+
+async function rejectUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!confirm(`Recusar e remover o cadastro de ${u?.nome}?`)) return;
+  try {
+    await deleteDoc(doc(db, 'users', id));
+    toast('Cadastro recusado.');
+  } catch(e) { toast('Erro ao recusar.', true); }
+}
+window.rejectUser = rejectUser;
+
+async function saveEmpresa() {
+  const nome = document.getElementById('inp-empresa').value.trim() || 'Minha Empresa';
+  try {
+    await setDoc(doc(db, 'config', 'empresa'), { nome });
+    empresa = nome;
+    document.getElementById('company-label').textContent = nome.toUpperCase();
+    document.getElementById('auth-empresa-label').textContent = nome;
+    toast('Nome salvo!');
+  } catch(e) { toast('Erro ao salvar.', true); }
+}
+window.saveEmpresa = saveEmpresa;
+
+async function addFuncAdmin() {
+  const nome  = document.getElementById('inp-nome').value.trim();
+  const email = document.getElementById('inp-email-admin').value.trim().toLowerCase();
+  const nasc  = document.getElementById('inp-nasc-admin').value;
+  const cargo = document.getElementById('inp-cargo-admin').value.trim();
+  if (!nome || !email || !nasc || !cargo) { toast('Preencha todos os campos', true); return; }
+  try {
+    const existing = await getUserByEmail(email);
+    if (existing) { toast('E-mail já cadastrado', true); return; }
+    await addDoc(collection(db, 'users'), { nome, email, nasc, cargo, isAdmin: false, status: 'active', criadoEm: new Date().toISOString() });
+    document.getElementById('inp-nome').value = '';
+    document.getElementById('inp-email-admin').value = '';
+    document.getElementById('inp-nasc-admin').value = '';
+    document.getElementById('inp-cargo-admin').value = '';
+    toast('Funcionário adicionado!');
+  } catch(e) { toast('Erro ao adicionar.', true); }
+}
+window.addFuncAdmin = addFuncAdmin;
+
+async function delUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!confirm(`Remover ${u?.nome}?`)) return;
+  try {
+    await deleteDoc(doc(db, 'users', id));
+    toast('Funcionário removido.');
+  } catch(e) { toast('Erro ao remover.', true); }
+}
+window.delUser = delUser;
+
+async function toggleAdmin(id) {
+  if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) { toast('Apenas o administrador master pode fazer isso.', true); return; }
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
+  if (!confirm(`${u.isAdmin ? 'Remover admin de' : 'Tornar admin'} ${u.nome}?`)) return;
+  try {
+    await updateDoc(doc(db, 'users', id), { isAdmin: !u.isAdmin });
+    toast(u.isAdmin ? `Admin removido de ${u.nome}` : `${u.nome} agora é admin!`);
+  } catch(e) { toast('Erro.', true); }
+}
+window.toggleAdmin = toggleAdmin;
+
+// ========== NAV ==========
+function goTab(name) {
+  const isAdmin = currentUser && currentUser.isAdmin;
+  if (name === 'config' && !isAdmin) return;
+  ['bater','registros','config'].forEach(t => {
+    const el = document.getElementById('tab-'+t);
+    const nb = document.getElementById('nav-'+t);
+    if (el) el.style.display = 'none';
+    if (nb) nb.classList.remove('active');
+  });
+  document.getElementById('tab-'+name).style.display = 'block';
+  const nb = document.getElementById('nav-'+name);
+  if (nb) nb.classList.add('active');
+  if (name === 'registros') {
+    document.getElementById('admin-filters').style.display = isAdmin ? 'flex' : 'none';
+    document.getElementById('user-filters').style.display  = isAdmin ? 'none' : 'flex';
+    const csvArea = document.getElementById('csv-area');
+    if (csvArea) csvArea.style.display = isAdmin ? 'block' : 'none';
+    renderRegs();
+    updateSummary();
+  }
+  if (name === 'config') renderAdmin();
+}
+window.goTab = goTab;
+
+// ========== START ==========
+setInterval(tick, 1000);
+tick();
+boot();
+</script>
+</body>
+</html>
